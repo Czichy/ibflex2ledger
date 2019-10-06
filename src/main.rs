@@ -97,6 +97,57 @@ fn request_ref_code(client: &reqwest::Client) -> String {
     }
     panic!("Unexpected response");
 }
+fn request_report(client: &reqwest::Client, reference_code: String) -> String {
+    let mut retries = 3;
+    let mut delay = 1;
+    //et mut fail_count = 0;
+    let statement_url = format!("https://gdcdyn.interactivebrokers.com/Universal/servlet/FlexStatementService.GetStatement?q={}&t={}&v={}",
+                                 reference_code, "168331604313807293250457", 3);
+
+    while retries > 0 {
+        match get(client, &statement_url) {
+            Err(error) => {
+                error!("{}", error);
+                panic!("Error fetching items");
+            }
+            Ok(mut response) => match response.status() {
+                StatusCode::OK => {
+                    match response.text() {
+                        Ok(text) => {
+                            let _re = Regex::new(r">(?P<error>.*)</ErrorCode>").unwrap();
+                            match _re.captures(&text) {
+                                Some(m) => {
+                                    match m.name("error").unwrap().as_str().parse::<i32>().unwrap()
+                                    {
+                                        1018..=1019 => info!("1018 -- {:#?}", text),
+                                        _ => panic!("errororor"),
+                                    }
+                                }
+                                _ => return text,
+                            }
+                        }
+                        Err(error) => {
+                            // error receiving full response, try again with same link
+                            eprintln!("{}", error);
+                            panic!("Partial response");
+                        }
+                    }
+                }
+                status => {
+                    eprintln!(
+                        "Response {:?} {}",
+                        status,
+                        status.canonical_reason().unwrap()
+                    );
+                }
+            },
+        }
+        std::thread::sleep(Duration::from_secs(delay));
+        retries -= 1;
+        delay *= 16;
+    }
+    panic!("Unexpected response");
+}
 //client
 //        .get(&_url)
 //        .send()
@@ -191,7 +242,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let statement_url = format!("https://gdcdyn.interactivebrokers.com/Universal/servlet/FlexStatementService.GetStatement?q={}&t={}&v={}",
                                  reference_code, "168331604313807293250457", 3);
     let mut response = get(&client, &statement_url)?;
-
+    let rep = request_report(&client, reference_code);
+    info!("{:#?}", rep);
     let mut dest = {
         let fname = response
             .url()
@@ -205,7 +257,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("will be located under: '{:?}'", fname);
         File::create(fname)?
     };
-info!("{:#?}",response.text());
+    info!("{:#?}", response);
     copy(&mut response, &mut dest)?;
     Ok(())
 }
