@@ -3,7 +3,6 @@ name = "flex-web-rs"
 version = "0.1.0"
 authors = ["Christian Czichy <christian@czichy.com>"]
 edition = "2018"
-
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
@@ -18,3 +17,14 @@ serde-xml-rs = "0.3.1"
 tempfile="3.1"
 serde_urlencoded = "0.5"
 log = "0.4.6"
+[features]
+#default = ["rustls-on", "compu"]
+## Enables usage of rustls, which replaces default connectors
+#rustls-on = ["tokio-rustls", "webpki-roots", "tokio-io"]
+## Enables encoding/decoding of text content
+#encoding = ["encoding_rs"]
+## Enables websocket upgrade
+#websocket = ["sha-1", "getrandom", "carry_extensions"]
+## Specifies that documentation is being generated
+#docs = []
+#
