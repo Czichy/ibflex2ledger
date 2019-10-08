@@ -7,7 +7,7 @@ extern crate tokio;
 //use std::io::{self, Cursor};
 //use futures::Future;
 use regex::Regex;
-use reqwest::{Client};//, Response};
+use reqwest::Client; //, Response};
 use serde::Deserialize;
 //use serde_xml_rs::{from_str, to_string};
 use env_logger::Env;
@@ -15,7 +15,7 @@ use log::{error, info};
 use reqwest::StatusCode;
 use std::error::Error;
 use std::fs::File;
-use std::io::Write;
+use std::io::copy;
 use std::time::Duration;
 //use tempfile::Builder;
 
@@ -29,6 +29,94 @@ struct FlexStatementResponse {
     errormessage: String,
 }
 
+#[derive(Deserialize, Debug)]
+struct StatementOfFundsLine {
+    account_id: String,
+    #[serde(rename = "acctAlias")]
+    acct_alias: String,
+    #[serde(rename = "activityCode")]
+    activity_code: String,
+    #[serde(rename = "activityDescription")]
+    activity_description: String,
+    #[serde(rename = "amount")]
+    amount: String,
+    #[serde(rename = "assetCategory")]
+    asset_category: String,
+    #[serde(rename = "balance")]
+    balance: String,
+    #[serde(rename = "buySell")]
+    buy_sell: String,
+    #[serde(rename = "conid")]
+    conid: String,
+    #[serde(rename = "credit")]
+    credit: String,
+    #[serde(rename = "currency")]
+    currency: String,
+    #[serde(rename = "cusip")]
+    cusip: String,
+    #[serde(rename = "date")]
+    date: String,
+    #[serde(rename = "debit")]
+    debit: String,
+    #[serde(rename = "description")]
+    description: String,
+    #[serde(rename = "expiry")]
+    expiry: String,
+    #[serde(rename = "fxRateToBase")]
+    fx_rate_to_base: String,
+    #[serde(rename = "isin")]
+    isin: String,
+    #[serde(rename = "issuer")]
+    issuer: String,
+    #[serde(rename = "levelOfDetail")]
+    level_of_detail: String,
+    #[serde(rename = "listingExchange")]
+    listing_exchange: String,
+    #[serde(rename = "model")]
+    model: String,
+    #[serde(rename = "multiplier")]
+    multiplier: String,
+    #[serde(rename = "orderID")]
+    order_id: String,
+    #[serde(rename = "principalAdjustFactor")]
+    principal_adjust_factor: String,
+    #[serde(rename = "putCall")]
+    put_call: String,
+    #[serde(rename = "reportDate")]
+    report_date: String,
+    #[serde(rename = "securityID")]
+    security_id: String,
+    #[serde(rename = "securityIDType")]
+    security_id_type: String,
+    #[serde(rename = "settleDate")]
+    settle_date: String,
+    #[serde(rename = "strike")]
+    strike: String,
+    #[serde(rename = "symbol")]
+    symbol: String,
+    #[serde(rename = "tradeCode")]
+    trade_code: String,
+    #[serde(rename = "tradeCommission")]
+    trade_commission: String,
+    #[serde(rename = "tradeGross")]
+    trade_gross: String,
+    #[serde(rename = "tradeID")]
+    trade_id: String,
+    #[serde(rename = "tradePrice")]
+    trade_price: String,
+    #[serde(rename = "tradeQuantity")]
+    trade_quantity: String,
+    #[serde(rename = "tradeTax")]
+    trade_tax: String,
+    #[serde(rename = "underlyingConid")]
+    underlying_conid: String,
+    #[serde(rename = "underlyingListingExchange")]
+    underlying_listing_exchange: String,
+    #[serde(rename = "underlyingSecurityID")]
+    underlying_security_id: String,
+    #[serde(rename = "underlyingSymbol")]
+    underlying_symbol: String,
+}
 fn get(client: &reqwest::Client, uri: &str) -> Result<reqwest::Response, Box<dyn Error>> {
     let mut retries = 3;
     let mut delay = 3;
@@ -96,7 +184,10 @@ fn request_ref_code(client: &reqwest::Client) -> String {
     }
     panic!("Unexpected response");
 }
-fn request_report(client: &reqwest::Client, reference_code: String) -> Result<reqwest::Response, Box<dyn Error>> {
+fn request_report(
+    client: &reqwest::Client,
+    reference_code: String,
+) -> Result<String, Box<dyn Error>> {
     let mut retries = 3;
     let mut delay = 1;
     let statement_url = format!("https://gdcdyn.interactivebrokers.com/Universal/servlet/FlexStatementService.GetStatement?q={}&t={}&v={}",
@@ -113,16 +204,17 @@ fn request_report(client: &reqwest::Client, reference_code: String) -> Result<re
                 StatusCode::OK => {
                     match response.text() {
                         Ok(text) => {
-                            let statement_response:Result<FlexStatementResponse,serde_xml_rs::Error> = serde_xml_rs::from_str(&text);
+                            let statement_response: Result<
+                                FlexStatementResponse,
+                                serde_xml_rs::Error,
+                            > = serde_xml_rs::from_str(&text);
                             match statement_response {
-                                Ok(resp) => {
-                                match resp.errorcode{
-                                        1019 => info!("1019 -- {:#?}", text),
-                                        _ => panic!("errororor"),
-                                }
-                                }
-                                _=> {
-                                    return Ok(response);
+                                Ok(resp) => match resp.errorcode {
+                                    1019 => info!("1019 -- {:#?}", text),
+                                    _ => panic!("errororor"),
+                                },
+                                _ => {
+                                    return Ok(text);
                                 }
                             }
                         }
@@ -167,11 +259,9 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     env_logger::from_env(Env::default().default_filter_or("info")).init();
     let client = Client::new();
     let reference_code = request_ref_code(&client);
-    //let tmp_dir = Builder::new().prefix("example").tempdir()?;
-    let mut response = request_report(&client, reference_code)?;
+    let response = request_report(&client, reference_code)?;
     let mut _dest = File::create("/home/czichy/tmp/test.xml")?;
-    //info!("Response: {:#?}", response);
- _dest.write_all(&response.text()?.as_bytes())?;
-   // response.copy_to(&mut _dest)?;
+    info!("Response: {:#?}", response);
+    copy(&mut response.as_bytes(), &mut _dest)?;
     Ok(())
 }
