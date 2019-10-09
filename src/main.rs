@@ -30,7 +30,100 @@ struct FlexStatementResponse {
 }
 
 #[derive(Deserialize, Debug)]
+struct FlexQueryResponse {
+    #[serde(rename = "FlexStatements")]
+    flex_statements: FlexStatements,
+    #[serde(rename = "queryName")]
+    query_name: String,
+    #[serde(rename = "type")]
+    r#type: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct FlexStatements {
+    #[serde(rename = "FlexStatement")]
+    flex_statement: FlexStatement,
+    count: String,
+}
+
+#[derive(Deserialize, Debug)]
+struct FlexStatement {
+    #[serde(rename = "accountId")]
+    account_id: String,
+
+    #[serde(rename = "fromDate")]
+    from_date: String,
+
+    #[serde(rename = "toDate")]
+    to_date: String,
+
+    #[serde(rename = "period")]
+    period: String,
+
+    #[serde(rename = "whenGenerated")]
+    when_generated: String,
+
+    #[serde(rename = "StmtFunds")]
+    statement_of_funds: Vec<StatementOfFundsLine>,
+
+    // #[serde(rename = "AccountInformation")]
+    // account_information: String,
+
+    // #[serde(rename = "EquitySummaryInBase")]
+    // equity_summary_in_base: String,
+
+    // #[serde(rename = "OpenPositions")]
+    // open_positions: String,
+
+    // #[serde(rename = "Trades")]
+    // trades: String,
+
+    // #[serde(rename = "TradeConfirms")]
+    // trade_confirms: String,
+
+    // #[serde(rename = "TransactionTaxes")]
+    // transaction_taxes: String,
+
+    // #[serde(rename = "OptionEAE")]
+    // option_eae: String,
+
+    // #[serde(rename = "PriorPeriodPositions")]
+    // prior_period_positions: String,
+
+    // #[serde(rename = "CorporateActions")]
+    // corporate_actions: String,
+
+    // #[serde(rename = "CashTransactions")]
+    // cash_transactions: String,
+
+    // #[serde(rename = "CFDCharges")]
+    // cfd_charges: String,
+
+    // #[serde(rename = "Transfers")]
+    // transfers: String,
+
+    // #[serde(rename = "ChangeInDividendAccruals")]
+    // change_in_dividend_accruals: String,
+
+    // #[serde(rename = "OpenDividendAccruals")]
+    // open_dividend_accruals: String,
+
+    // #[serde(rename = "SecuritiesInfo")]
+    // securities_info: String,
+
+    // #[serde(rename = "ConversionRates")]
+    // conversion_rates: String,
+}
+
+//#[derive(Deserialize, Debug)]
+//struct StmtFunds {
+//    #[serde(rename = "StmtFunds")]
+//    stmt_funds: Vec<StatementOfFundsLine>,
+//}
+
+#[derive(Deserialize, Debug)]
 struct StatementOfFundsLine {
+    #[serde(rename = "accountId")]
     account_id: String,
     #[serde(rename = "acctAlias")]
     acct_alias: String,
@@ -261,7 +354,29 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let reference_code = request_ref_code(&client);
     let response = request_report(&client, reference_code)?;
     let mut _dest = File::create("/home/czichy/tmp/test.xml")?;
-    info!("Response: {:#?}", response);
+    //info!("Response: {:#?}", response);
     copy(&mut response.as_bytes(), &mut _dest)?;
+let doc = match roxmltree::Document::parse(&response) {
+        Ok(doc) => doc,
+        Err(e) => {
+            println!("Error: {}.", e);
+            return Err(Box::new(e));
+
+        },
+};
+        info!("{:?}",doc);
+    for record_data in doc
+        .descendants()
+        .filter(|n| n.tag_name().name() == "StatementOfFundsLine")
+        //.map(|n| roxmltree::Document::parse(n.text().unwrap_or("")))
+        //.filter_map(|info| info.ok())
+    {
+        info!("{:?}",record_data);
+    }
+                           // let statement_response: Result<
+                           //     FlexQueryResponse,
+                           //     serde_xml_rs::Error,
+                           // > = serde_xml_rs::from_str(&response);
+    //info!("{:?}",statement_response);
     Ok(())
 }
