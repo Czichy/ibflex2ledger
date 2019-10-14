@@ -10,14 +10,19 @@ use regex::Regex;
 use reqwest::Client; //, Response};
 use serde::Deserialize;
 //use serde_xml_rs::{from_str, to_string};
+use chrono::NaiveDate;
 use env_logger::Env;
 use log::{error, info};
 use reqwest::StatusCode;
+use rust_decimal::Decimal;
 use std::error::Error;
 use std::fs::File;
 use std::io::copy;
-use std::time::Duration;
-//use tempfile::Builder;
+use std::ops::Neg;
+use std::str::FromStr;
+use std::time::Duration; //use tempfile::Builder;
+pub mod model;
+pub use model::*;
 
 #[derive(Deserialize, Debug)]
 struct FlexStatementResponse {
@@ -65,7 +70,6 @@ struct FlexStatement {
 
     #[serde(rename = "StmtFunds")]
     statement_of_funds: Vec<StatementOfFundsLine>,
-
     // #[serde(rename = "AccountInformation")]
     // account_information: String,
 
@@ -356,27 +360,85 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let mut _dest = File::create("/home/czichy/tmp/test.xml")?;
     //info!("Response: {:#?}", response);
     copy(&mut response.as_bytes(), &mut _dest)?;
-let doc = match roxmltree::Document::parse(&response) {
+    let doc = match roxmltree::Document::parse(&response) {
         Ok(doc) => doc,
         Err(e) => {
             println!("Error: {}.", e);
             return Err(Box::new(e));
-
-        },
-};
-        info!("{:?}",doc);
+        }
+    };
+    //info!("{:?}", doc);
     for record_data in doc
         .descendants()
         .filter(|n| n.tag_name().name() == "StatementOfFundsLine")
-        //.map(|n| roxmltree::Document::parse(n.text().unwrap_or("")))
-        //.filter_map(|info| info.ok())
+    //.map(|n| roxmltree::Document::parse(n.text().unwrap_or("")))
+    //.filter_map(|info| info.ok())
     {
-        info!("{:?}",record_data);
+        let counter_account = match record_data.attribute("activityCode").unwrap() {
+            "OFEE" => "Ausgaben:Kapitalvermögen:Laufende Ausgaben:Depotspesen".to_string(),
+            "DEP" => "Equity:Transfers".to_string(),
+            _ => "Vermögen:Kapitalvermögen:Finanzinstrumente:Interactive Brokers".to_string(),
+        };
+        let trans = Transaction {
+            comment: None,
+            date: NaiveDate::parse_from_str(
+                record_data.attribute("date").unwrap_or(&""),
+                "%Y-%m-%d",
+            )?,
+            effective_date: NaiveDate::parse_from_str(
+                record_data.attribute("settleDate").unwrap_or(&""),
+                "%Y-%m-%d",
+            )
+            .ok(),
+            status: Some(TransactionStatus::Cleared),
+            code: None,
+            description: String::from(record_data.attribute("activityDescription").unwrap_or(&"")),
+            postings: vec![
+                Posting {
+                    account:
+                        "Vermögen:Kapitalvermögen:Guthaben:Verrechnungskonto:Interactive Brokers"
+                            .to_string(),
+                    amount: Some(Amount {
+                        quantity: Decimal::from_str(record_data.attribute("amount").unwrap_or(""))?,
+                        commodity: Commodity {
+                            name: record_data.attribute("currency").unwrap().to_string(),
+                            position: CommodityPosition::Left,
+                        },
+                    }),
+                    balance: Some(Balance::Amount(Amount {
+                        quantity: Decimal::from_str(
+                            record_data.attribute("balance").unwrap_or(""),
+                        )?,
+                        commodity: Commodity {
+                            name: record_data.attribute("currency").unwrap().to_string(),
+                            position: CommodityPosition::Left,
+                        },
+                    })),
+                    status: None,
+                    comment: Some(record_data.attribute("transactionID").unwrap().to_string()),
+                },
+                Posting {
+                    account: counter_account,
+                    amount: Some(Amount {
+                        quantity: Decimal::from_str(record_data.attribute("amount").unwrap_or(""))?
+                            .neg(),
+                        commodity: Commodity {
+                            name: record_data.attribute("currency").unwrap().to_string(),
+                            position: CommodityPosition::Left,
+                        },
+                    }),
+                    balance: None,
+                    status: None,
+                    comment: None,
+                },
+            ],
+        };
+        info!("{}", trans);
     }
-                           // let statement_response: Result<
-                           //     FlexQueryResponse,
-                           //     serde_xml_rs::Error,
-                           // > = serde_xml_rs::from_str(&response);
-    //info!("{:?}",statement_response);
+    // let statement_response: Result<
+    //     FlexQueryResponse,
+    //     serde_xml_rs::Error,
+    // > = serde_xml_rs::from_str(&response);
+    //info("{:?}",statement_response);
     Ok(())
 }

@@ -20,3 +20,5 @@ log = "0.4.6"
 futures-core-preview = "=0.3.0-alpha.19"
 futures-util-preview = { version = "=0.3.0-alpha.19", default-features = false }
 roxmltree = "0.7.1"
+rust_decimal = "1"
+chrono = "0.4"
