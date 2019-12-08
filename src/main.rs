@@ -323,7 +323,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .map(|record_data| {
             let counter_account = match record_data.attribute("activityCode").unwrap() {
                 "OFEE" => "Ausgaben:Kapitalvermögen:Laufende Ausgaben:Depotspesen".to_string(),
-                "DEP" => "Equity:Transfers".to_string(),
+                "DEP" | "WITH"  => "Equity:Transfers".to_string(),
                 _ => "Vermögen:Kapitalvermögen:Finanzinstrumente:Interactive Brokers".to_string(),
             };
             parse_transaction(
