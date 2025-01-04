@@ -2,18 +2,16 @@
 name = "flex-web-rs"
 version = "0.1.0"
 authors = ["Christian Czichy <christian@czichy.com>"]
-edition = "2018"
+edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-structopt="0.3"
-env_logger = "0.7"
 bytes = "0.4"
-reqwest = "0.9"
-regex = "1"
-serde = "1.0"
-serde-xml-rs = "0.3.1"
-log = "0.4.6"
-roxmltree = "0.7.1"
-rust_decimal = "1"
 chrono = "0.4"
+clap = { version = "4.4", features = [ "derive" ], optional = true }
+env_logger = "0.7"
+log = "0.4.6"
+regex = "1"
+rust_decimal = "1"
+
+ibkr-rust-flex= { git= "https://github.com/Czichy/ibkr-rust.git",branch = "develop" }

@@ -1,0 +1,21 @@
+edition                      = "2021"
+
+blank_lines_upper_bound      = 1
+enum_discrim_align_threshold = 30
+fn_single_line               = true
+force_multiline_blocks       = true
+format_macro_matchers        = true
+format_strings               = true
+group_imports                = "StdExternalCrate"
+imports_granularity          = "Crate"
+imports_indent               = "Visual"
+imports_layout               = "HorizontalVertical"
+match_block_trailing_comma   = true
+newline_style                = "Unix"
+normalize_comments           = true
+overflow_delimited_expr      = true
+reorder_impl_items           = true
+reorder_imports              = true
+struct_field_align_threshold = 30
+unstable_features            = true
+wrap_comments                = true
