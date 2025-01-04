@@ -12,14 +12,10 @@ target
 /*.iml
 /issues
 /captures
-/world_config.yaml
+/result
 /settings.yaml
 /TODO.md
-/.xwin-cache
 **/*.dbf
-**/snapshot*.ron
-**/test.parquet
-**/trace*.json
 .directory
 **/venv
 **/.venv
