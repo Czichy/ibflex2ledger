@@ -43,8 +43,7 @@
           "taplo.toml"
           "rustfmt.toml"
           "rust-toolchain.toml"
-          "crates/api"
-          "crates/flex"
+          "src"
         ];
       };
 
@@ -83,7 +82,7 @@
           root = ../.;
           include =
             [
-              "crates"
+              "src"
               "Cargo.toml"
               "Cargo.lock"
             ]
@@ -92,24 +91,13 @@
 
       cargoArtifacts = craneLib.buildDepsOnly args;
 
-      api = craneLib.buildPackage (individualCrateArgs
+      ibflex2ledger = craneLib.buildPackage (individualCrateArgs
         // rec {
-          pname = manifest.name;
-          version = manifest.version;
-          cargoExtraArgs = "--lib ${pname}";
-          src = fileSetForCrate [
-            "crates/api/src"
-            "crates/api/Cargo.toml"
-          ];
-        });
-
-      flex = craneLib.buildPackage (individualCrateArgs
-        // rec {
-          pname = "ibkr-rust-flex";
+          pname = "ibflex2ledger";
           cargoExtraArgs = "--bin ${pname}";
           src = fileSetForCrate [
-            "crates/flex/src"
-            "crates/flex/Cargo.toml"
+            "src"
+            "Cargo.toml"
           ];
         });
     in {
@@ -155,9 +143,9 @@
       };
 
       packages = {
-        inherit flex api;
+        inherit ibflex2ledger;
         inherit (self.checks.${system}) coverage;
-        default = self.packages.${system}.flex;
+        default = self.packages.${system}.ibflex2ledger;
       };
       legacyPackages = {
         cargoExtraPackages = args.nativeBuildInputs;
@@ -165,7 +153,7 @@
 
       apps = {
         default = {
-          program = self.packages.${system}.flex;
+          program = self.packages.${system}.ibflex2ledger;
         };
       };
 

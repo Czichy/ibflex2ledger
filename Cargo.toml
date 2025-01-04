@@ -1,5 +1,5 @@
 [package]
-name = "flex-web-rs"
+name = "ibflex2ledger"
 version = "0.1.0"
 authors = ["Christian Czichy <christian@czichy.com>"]
 edition = "2021"
@@ -8,10 +8,22 @@ edition = "2021"
 [dependencies]
 bytes = "0.4"
 chrono = "0.4"
-clap = { version = "4.4", features = [ "derive" ], optional = true }
+clap = { version = "4.5", features = [ "derive" ] }
+clap-verbosity-flag = "3.0.2"
 env_logger = "0.7"
+iso_currency = { version = "0.4.0", features = ["with-serde"] }
 log = "0.4.6"
 regex = "1"
 rust_decimal = "1"
+tokio = { version = "1.17", features = ["full"] }
+tracing = { version = "0.1", default-features = false, features = ["log", "std","attributes"] }
+tracing-bunyan-formatter = "0.3.9"
+tracing-log = { version = "0.1" }
+tracing-subscriber = { version = "0.3.16", default-features = false, features = ["registry","fmt","env-filter"] }
 
 ibkr-rust-flex= { git= "https://github.com/Czichy/ibkr-rust.git",branch = "develop" }
+
+[dev-dependencies]
+pretty_assertions = "1.1.0"
+ctor = "0.1.21"
+
