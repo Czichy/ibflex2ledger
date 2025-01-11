@@ -1,110 +1,25 @@
-#![deny(warnings)]
-// use structopt::clap::{crat_authors, crate_description, crate_name,
-// crate_version};
 use std::{io::Write, path::PathBuf};
 
 use clap::Parser;
 mod args;
 pub mod model;
 mod parse;
+use log::error;
 pub use model::*;
 
-// fn parse_transaction(
-//     statement_of_funds_line: roxmltree::Node,
-//     src_account: String,
-//     counter_account: String,
-// ) -> Transaction {
-//     Transaction {
-//         comment:        None,
-//         date:           NaiveDate::parse_from_str(
-//             statement_of_funds_line.attribute("date").unwrap_or(&""),
-//             "%Y-%m-%d",
-//         )
-//         .unwrap(),
-//         effective_date: NaiveDate::parse_from_str(
-//             statement_of_funds_line
-//                 .attribute("settleDate")
-//                 .unwrap_or(&""),
-//             "%Y-%m-%d",
-//         )
-//         .ok(),
-//         status:         Some(TransactionStatus::Cleared),
-//         code:           None,
-//         description:    String::from(
-//             statement_of_funds_line
-//                 .attribute("activityDescription")
-//                 .unwrap_or(&""),
-//         ),
-//         postings:       vec![
-//             Posting {
-//                 account: src_account,
-//                 amount:  Some(Amount {
-//                     quantity:  Decimal::from_str(
-//
-// statement_of_funds_line.attribute("amount").unwrap_or(""),
-// )                     .unwrap(),
-//                     commodity: Commodity {
-//                         name:     statement_of_funds_line
-//                             .attribute("currency")
-//                             .unwrap()
-//                             .to_string(),
-//                         position: CommodityPosition::Left,
-//                     },
-//                 }),
-//                 balance: Some(Balance::Amount(Amount {
-//                     quantity:  Decimal::from_str(
-//
-// statement_of_funds_line.attribute("balance").unwrap_or(""),
-// )                     .unwrap(),
-//                     commodity: Commodity {
-//                         name:     statement_of_funds_line
-//                             .attribute("currency")
-//                             .unwrap()
-//                             .to_string(),
-//                         position: CommodityPosition::Left,
-//                     },
-//                 })),
-//                 status:  None,
-//                 comment: Some(
-//                     statement_of_funds_line
-//                         .attribute("transactionID")
-//                         .unwrap()
-//                         .to_string(),
-//                 ),
-//             },
-//             Posting {
-//                 account: counter_account,
-//                 amount:  Some(Amount {
-//                     quantity:  Decimal::from_str(
-//
-// statement_of_funds_line.attribute("amount").unwrap_or(""),
-// )                     .unwrap()
-//                     .neg(),
-//                     commodity: Commodity {
-//                         name:     statement_of_funds_line
-//                             .attribute("currency")
-//                             .unwrap()
-//                             .to_string(),
-//                         position: CommodityPosition::Left,
-//                     },
-//                 }),
-//                 balance: None,
-//                 status:  None,
-//                 comment: None,
-//             },
-//         ],
-//     }
-// }
 
 #[tokio::main]
 pub async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
+    error!("run ...");
     let opt = args::OptArgs::parse();
     // Initialize logger
     env_logger::Builder::new()
         .filter_level(opt.verbose.log_level_filter())
         .init();
+    error!("options: {opt:#?}");
 let mut transactions: Vec<Transaction> = vec![];
     let response = ibkr_rust_flex::flex_statement_from_file(opt.flex_file).await;
+    error!("response: {response:#?}");
     {
         if let Ok(response) = response {
             let account_id = &response.account_id;
@@ -113,7 +28,7 @@ let mut transactions: Vec<Transaction> = vec![];
                     .items
                     .iter()
                     .filter_map(|item| {
-                        if item.activity_code == None                         
+                        if item.activity_code.is_none()                         
                     || item.activity_code == Some("BUY".into())
                     || item.activity_code == Some("SELL".into())
                     || item.activity_code == Some("FOREX".into())
@@ -172,12 +87,13 @@ if let Some(ref statements) = response.corporate_actions{
                 transactions.append(&mut actions);
             }        }
     }
-    transactions.iter().for_each(|t| println!("{t}"));
+    // transactions.iter().for_each(|t| println!("{t}"));
     if let Some(path) = opt.journal_file {
         let file_name: PathBuf = PathBuf::from(&path);
         tracing::error!("{:?}", &file_name);
         let f = std::fs::File::create(file_name)?;
 
+        #[allow(clippy::explicit_iter_loop)]
         for t in transactions.iter() {
             writeln!(&f, "{t}").unwrap();
         }

@@ -1,6 +1,7 @@
 use std::ops::Neg;
 
 use ibkr_rust_flex::{corporate_actions::CorporateAction,
+                     enums::MultiDate,
                      stmt_funds::StatementOfFundsLine,
                      trades::Trade};
 use iso_currency::Currency;
@@ -24,24 +25,20 @@ pub(crate) fn parse_transaction(
         .map(|code| {
             match code.as_str() {
                 "OFEE" | "MFEE" | "SCOM" => {
-                    "Ausgaben:Kapitalvermögen:Laufende Ausgaben:Depotspesen".to_string()
+                    "Ausgaben:Kapitalvermögen:Laufende Ausgaben:Depotspesen".to_owned()
                 },
-                "DINT" => "Ausgaben:Kapitalvermögen:Laufende Ausgaben:Zinsen".to_string(),
+                "DINT" => "Ausgaben:Kapitalvermögen:Laufende Ausgaben:Zinsen".to_owned(),
                 "TTAX" | "STAX" | "FRTAX" => {
-                    "Ausgaben:Kapitalvermögen:Laufende Ausgaben:Steuern".to_string()
+                    "Ausgaben:Kapitalvermögen:Laufende Ausgaben:Steuern".to_owned()
                 },
-                "DIV" => "Einnahmen:Kapitalvermögen:Laufende Einnahmen:Dividenden".to_string(),
+                "DIV" => "Einnahmen:Kapitalvermögen:Laufende Einnahmen:Dividenden".to_owned(),
                 "INTR" | "INTP" => {
                     "Einnahmen:Kapitalvermögen:Laufende Einnahmen:Zinsen aus Finanzinstrumenten"
-                        .to_string()
+                        .to_owned()
                 },
-                "DEP" | "WITH" => "Eigenkapital:Transfers".to_string(),
-                "FOREX" => {
-                    format!(
-                        "{}:{}",
-                        "Vermögen:Kapitalvermögen:Finanzinstrumente:Interactive Brokers",
-                        src_account
-                    )
+                "DEP" | "WITH" => {
+                    let var_name = "Eigenkapital:Transfers";
+                    var_name.to_owned()
                 },
                 _ => {
                     format!(
@@ -57,7 +54,13 @@ pub(crate) fn parse_transaction(
                 comment: None,
                 date:    statement_of_funds_line.date,
 
-                effective_date: statement_of_funds_line.settle_date,
+                effective_date: {
+                    match statement_of_funds_line.settle_date {
+                        Some(MultiDate::Date(dt)) => Some(dt),
+                        Some(_) => Some(statement_of_funds_line.date),
+                        None => None,
+                    }
+                },
                 status:         Some(TransactionStatus::Cleared),
                 code:           None,
                 description:    statement_of_funds_line.activity_description.clone(),
@@ -68,7 +71,7 @@ pub(crate) fn parse_transaction(
                             quantity: statement_of_funds_line.amount.unwrap_or_default(),
 
                             commodity: Commodity {
-                                name:     statement_of_funds_line.currency.code().to_string(),
+                                name:     statement_of_funds_line.currency.code().to_owned(),
                                 position: CommodityPosition::Left,
                             },
                         }),
@@ -76,7 +79,7 @@ pub(crate) fn parse_transaction(
                             quantity: statement_of_funds_line.balance.unwrap_or_default(),
 
                             commodity: Commodity {
-                                name:     statement_of_funds_line.currency.code().to_string(),
+                                name:     statement_of_funds_line.currency.code().to_owned(),
                                 position: CommodityPosition::Left,
                             },
                         })),
@@ -93,7 +96,7 @@ pub(crate) fn parse_transaction(
                         amount:    Some(Amount {
                             quantity:  statement_of_funds_line.amount.unwrap_or_default().neg(),
                             commodity: Commodity {
-                                name:     statement_of_funds_line.currency.code().to_string(),
+                                name:     statement_of_funds_line.currency.code().to_owned(),
                                 position: CommodityPosition::Left,
                             },
                         }),
@@ -107,6 +110,7 @@ pub(crate) fn parse_transaction(
             }
         })
 }
+#[allow(clippy::too_many_lines)]
 pub(crate) fn parse_trade_pnl(trade_line: &Trade, account_id: &String) -> Transaction {
     let cash_account = format!(
         "{}:{}",
@@ -135,7 +139,7 @@ pub(crate) fn parse_trade_pnl(trade_line: &Trade, account_id: &String) -> Transa
             amount:    Some(Amount {
                 quantity:  trade_line.proceeds,
                 commodity: Commodity {
-                    name:     trade_line.currency.code().to_string(),
+                    name:     trade_line.currency.code().to_owned(),
                     position: CommodityPosition::Left,
                 },
             }),
@@ -155,14 +159,14 @@ pub(crate) fn parse_trade_pnl(trade_line: &Trade, account_id: &String) -> Transa
                     position: CommodityPosition::Right,
                 },
             }),
-            lot_price: if let Some(ibkr_rust_flex::enums::OpenClose::C) =
-                trade_line.open_close_indicator
+            lot_price: if trade_line.open_close_indicator
+                == Some(ibkr_rust_flex::enums::OpenClose::C)
             {
                 Some(Amount {
                     quantity:  trade_line.cost.abs(), // proceeds
                     // - trade_line.fifo_pnl_realized / trade_line.quantity.abs(),
                     commodity: Commodity {
-                        name:     trade_line.currency.code().to_string(),
+                        name:     trade_line.currency.code().to_owned(),
                         position: CommodityPosition::Right,
                     },
                 })
@@ -174,7 +178,7 @@ pub(crate) fn parse_trade_pnl(trade_line: &Trade, account_id: &String) -> Transa
                     Some(Amount {
                         quantity:  trade_line.trade_price / Decimal::new(100, 0),
                         commodity: Commodity {
-                            name:     trade_line.currency.code().to_string(),
+                            name:     trade_line.currency.code().to_owned(),
                             position: CommodityPosition::Right,
                         },
                     })
@@ -183,7 +187,7 @@ pub(crate) fn parse_trade_pnl(trade_line: &Trade, account_id: &String) -> Transa
                     Some(Amount {
                         quantity:  trade_line.trade_price,
                         commodity: Commodity {
-                            name:     trade_line.currency.code().to_string(),
+                            name:     trade_line.currency.code().to_owned(),
                             position: CommodityPosition::Right,
                         },
                     })
@@ -202,7 +206,7 @@ pub(crate) fn parse_trade_pnl(trade_line: &Trade, account_id: &String) -> Transa
                         .ib_commission_currency
                         .unwrap_or(Currency::EUR)
                         .code()
-                        .to_string(),
+                        .to_owned(),
                     position: CommodityPosition::Left,
                 },
             }),
@@ -221,7 +225,7 @@ pub(crate) fn parse_trade_pnl(trade_line: &Trade, account_id: &String) -> Transa
                         .ib_commission_currency
                         .unwrap_or(Currency::EUR)
                         .code()
-                        .to_string(),
+                        .to_owned(),
                     position: CommodityPosition::Left,
                 },
             }),
@@ -238,7 +242,7 @@ pub(crate) fn parse_trade_pnl(trade_line: &Trade, account_id: &String) -> Transa
             amount:    Some(Amount {
                 quantity:  (trade_line.fifo_pnl_realized - trade_line.ib_commission).neg(),
                 commodity: Commodity {
-                    name:     trade_line.currency.code().to_string(),
+                    name:     trade_line.currency.code().to_owned(),
                     position: CommodityPosition::Left,
                 },
             }),
@@ -289,7 +293,7 @@ pub(crate) fn parse_corporate_action(
             amount:    Some(Amount {
                 quantity:  corporate_action.proceeds,
                 commodity: Commodity {
-                    name:     corporate_action.currency.code().to_string(),
+                    name:     corporate_action.currency.code().to_owned(),
                     position: CommodityPosition::Left,
                 },
             }),
@@ -390,7 +394,7 @@ pub(crate) fn parse_corporate_action(
             amount:    Some(Amount {
                 quantity:  corporate_action.fifo_pnl_realized.neg(),
                 commodity: Commodity {
-                    name:     corporate_action.currency.code().to_string(),
+                    name:     corporate_action.currency.code().to_owned(),
                     position: CommodityPosition::Left,
                 },
             }),
@@ -403,7 +407,7 @@ pub(crate) fn parse_corporate_action(
     }
     Transaction {
         comment: None,
-        date: corporate_action.report_date.unwrap(),
+        date: corporate_action.report_date.expect(""),
         effective_date: corporate_action.report_date,
         status: Some(TransactionStatus::Cleared),
         code: None,
@@ -422,7 +426,7 @@ pub(crate) fn parse_fx_trade(
             amount:    Some(Amount {
                 quantity:  trade_line.proceeds,
                 commodity: Commodity {
-                    name:     trade_line.currency.code().to_string(),
+                    name:     trade_line.currency.code().to_owned(),
                     position: CommodityPosition::Left,
                 },
             }),
@@ -443,7 +447,7 @@ pub(crate) fn parse_fx_trade(
                         .split('.')
                         .next()
                         .unwrap_or("")
-                        .to_string(),
+                        .to_owned(),
                     position: CommodityPosition::Right,
                 },
             }),
@@ -462,7 +466,7 @@ pub(crate) fn parse_fx_trade(
                         .ib_commission_currency
                         .unwrap_or(Currency::EUR)
                         .code()
-                        .to_string(),
+                        .to_owned(),
                     position: CommodityPosition::Left,
                 },
             }),
@@ -481,7 +485,7 @@ pub(crate) fn parse_fx_trade(
                         .ib_commission_currency
                         .unwrap_or(Currency::EUR)
                         .code()
-                        .to_string(),
+                        .to_owned(),
                     position: CommodityPosition::Left,
                 },
             }),

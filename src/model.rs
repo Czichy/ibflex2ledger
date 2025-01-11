@@ -16,7 +16,7 @@ impl fmt::Display for Ledger {
 
         for commodity_price in &self.commodity_prices {
             first = false;
-            writeln!(f, "{{{}}}", commodity_price)?;
+            writeln!(f, "{{{commodity_price}}}")?;
         }
 
         for transaction in &self.transactions {
@@ -25,7 +25,7 @@ impl fmt::Display for Ledger {
             }
 
             first = false;
-            writeln!(f, "{{{}}}", transaction)?;
+            writeln!(f, "{{{transaction}}}")?;
         }
 
         Ok(())
@@ -49,15 +49,15 @@ impl fmt::Display for Transaction {
         write!(f, "{}", self.date)?;
 
         if let Some(effective_date) = self.effective_date {
-            write!(f, "={}", effective_date)?;
+            write!(f, "={effective_date}")?;
         }
 
         if let Some(ref status) = self.status {
-            write!(f, " {}", status)?;
+            write!(f, " {status}")?;
         }
 
         if let Some(ref code) = self.code {
-            write!(f, " ({})", code)?;
+            write!(f, " ({code})")?;
         }
 
         if !self.description.is_empty() {
@@ -66,12 +66,12 @@ impl fmt::Display for Transaction {
 
         if let Some(ref comment) = self.comment {
             for comment in comment.split('\n') {
-                write!(f, "\n  ; {}", comment)?;
+                write!(f, "\n  ; {comment}")?;
             }
         }
 
         for posting in &self.postings {
-            write!(f, "\n  {}", posting)?;
+            write!(f, "\n  {posting}")?;
         }
 
         Ok(())
@@ -87,8 +87,8 @@ pub enum TransactionStatus {
 impl fmt::Display for TransactionStatus {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            TransactionStatus::Pending => write!(f, "!"),
-            TransactionStatus::Cleared => write!(f, "*"),
+            Self::Pending => write!(f, "!"),
+            Self::Cleared => write!(f, "*"),
         }
     }
 }
@@ -113,14 +113,14 @@ impl fmt::Display for Posting {
         write!(f, "{}", self.account)?;
 
         if let Some(ref amount) = self.amount {
-            write!(f, "  {}", amount)?;
+            write!(f, "  {amount}")?;
         }
         if let Some(ref lot_price) = self.lot_price {
-            write!(f, " {{{{{}}}}}", lot_price)?;
+            write!(f, " {{{{{lot_price}}}}}")?;
         }
 
         if let Some(ref price) = self.price {
-            write!(f, "  @ {}", price)?;
+            write!(f, "  @ {price}")?;
         }
 
         // if let Some(ref balance) = self.balance {
@@ -129,7 +129,7 @@ impl fmt::Display for Posting {
 
         if let Some(ref comment) = self.comment {
             for comment in comment.split('\n') {
-                write!(f, "\n  ; {}", comment)?;
+                write!(f, "\n  ; {comment}")?;
             }
         }
 
@@ -145,7 +145,7 @@ pub struct Amount {
 
 impl fmt::Display for Amount {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
-        let amount = format!("{}", self.quantity).replacen(".", ",", 1);
+        let amount = format!("{}", self.quantity).replacen('.', ",", 1);
         match self.commodity.position {
             CommodityPosition::Left => write!(f, "{} {}", self.commodity.name, amount),
             CommodityPosition::Right => write!(f, "{} {}", amount, self.commodity.name),
@@ -178,8 +178,8 @@ pub enum Balance {
 impl fmt::Display for Balance {
     fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
         match self {
-            Balance::Zero => write!(f, "0"),
-            Balance::Amount(ref balance) => write!(f, "{}", *balance),
+            Self::Zero => write!(f, "0"),
+            Self::Amount(ref balance) => write!(f, "{}", *balance),
         }
     }
 }
@@ -221,7 +221,7 @@ mod tests {
             format!("{}", Amount {
                 quantity:  Decimal::new(4200, 2),
                 commodity: Commodity {
-                    name:     "€".to_string(),
+                    name:     "€".to_owned(),
                     position: CommodityPosition::Right,
                 },
             }),
@@ -231,7 +231,7 @@ mod tests {
             format!("{}", Amount {
                 quantity:  Decimal::new(4200, 2),
                 commodity: Commodity {
-                    name:     "USD".to_string(),
+                    name:     "USD".to_owned(),
                     position: CommodityPosition::Left,
                 },
             }),
@@ -243,11 +243,11 @@ mod tests {
     fn display_commodity_price() {
         let actual = format!("{}", CommodityPrice {
             datetime:       NaiveDate::from_ymd(2017, 11, 12).and_hms(12, 00, 00),
-            commodity_name: "mBH".to_string(),
+            commodity_name: "mBH".to_owned(),
             amount:         Amount {
                 quantity:  Decimal::new(500, 2),
                 commodity: Commodity {
-                    name:     "PLN".to_string(),
+                    name:     "PLN".to_owned(),
                     position: CommodityPosition::Right,
                 },
             },
@@ -264,7 +264,7 @@ mod tests {
                 Balance::Amount(Amount {
                     quantity:  Decimal::new(4200, 2),
                     commodity: Commodity {
-                        name:     "€".to_string(),
+                        name:     "€".to_owned(),
                         position: CommodityPosition::Right,
                     },
                 })
