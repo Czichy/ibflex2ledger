@@ -128,11 +128,11 @@ pub(crate) fn parse_trade_pnl(trade_line: &Trade, account_id: &String) -> Transa
         account_id
     );
 
-    // let fee_account = pnl_account.clone();
-    let fee_account = format!(
-        "{}:{}",
-        "Ausgaben:Kapitalvermögen:Laufende Ausgaben:Depotspesen", account_id
-    );
+    let fee_account = pnl_account.clone();
+    // let fee_account = format!(
+    //     "{}:{}",
+    //     "Ausgaben:Kapitalvermögen:Laufende Ausgaben:Depotspesen", account_id
+    // );
     let mut postings = vec![
         Posting {
             account:   cash_account.clone(),
