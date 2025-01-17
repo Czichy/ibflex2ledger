@@ -128,11 +128,11 @@ pub(crate) fn parse_trade_pnl(trade_line: &Trade, account_id: &String) -> Transa
         account_id
     );
 
-    let fee_account = pnl_account.clone();
-    // let fee_account = format!(
-    //     "{}:{}",
-    //     "Ausgaben:Kapitalvermögen:Laufende Ausgaben:Depotspesen", account_id
-    // );
+    // let fee_account = pnl_account.clone();
+    let fee_account = format!(
+        "{}:{}",
+        "Ausgaben:Kapitalvermögen:Laufende Ausgaben:Depotspesen", account_id
+    );
     let mut postings = vec![
         Posting {
             account:   cash_account.clone(),
@@ -509,88 +509,3 @@ pub(crate) fn parse_fx_trade(
         postings,
     }
 }
-// #[tokio::main]
-// pub async fn main() -> std::result::Result<(), Box<dyn std::error::Error>> {
-//     let mut transactions: Vec<Transaction> = vec![];
-//     let response =
-// ibkr_rust_flex::flex_statement_from_file(opt.flex_file).await;     {
-//         if let Ok(response) = response {
-//             let account_id = &response.account_id;
-//             if let Some(ref statements) = response.statement_of_funds {
-//                 let mut statement_of_funds_lines = statements
-//                     .items
-//                     .iter()
-//                     .filter_map(|item| {
-//                         if item.activity_code == None
-//                     || item.activity_code == Some("BUY".into())
-//                     || item.activity_code == Some("SELL".into())
-//                     || item.activity_code == Some("FOREX".into())
-//                     || item.activity_code == Some("CORP".into())
-//                     // TODO: do we need this?
-//                     || item.activity_code == Some("ADJ".into())
-//                         {
-//                             return None;
-//                         }
-//                         parse_transaction(
-//                             item,
-//                             format!(
-//                         "{}:{}",
-//
-// "Vermögen:Kapitalvermögen:Guthaben:Verrechnungskonto:Interactive Brokers",
-//                         account_id
-//                     ),
-//                         )
-//                     })
-//                     .collect::<Vec<_>>();
-//                 transactions.append(&mut statement_of_funds_lines);
-//             }
-//             if let Some(ref statements) = response.trades {
-//                 let mut trade_lines = statements
-//                     .items
-//                     .iter()
-//                     .filter_map(|item| {
-//                         if let TradeElements::Trade(trade) = item {
-//                             if trade.contract.asset_category ==
-// AssetCategory::CASH                             {
-//                                 Some(parse_fx_trade(trade,
-//                                 format!(        "{}:{}",
-//         "Vermögen:Kapitalvermögen:Guthaben:Verrechnungskonto:Interactive
-// Brokers", account_id     ),
-// format!(        "{}:{}",
-//         "Vermögen:Kapitalvermögen:Finanzinstrumente:Interactive Brokers",
-// account_id     )                                ))
-//                             } else {
-//                                 Some(parse_trade_pnl(trade, account_id))
-//                             }
-//                         } else {
-//                             None
-//                         }
-//                     })
-//                     .collect::<Vec<_>>();
-//                 transactions.append(&mut trade_lines);
-//             }
-
-// if let Some(ref statements) = response.corporate_actions{
-//                 let mut actions = statements
-//                     .items
-//                     .iter()
-//                     .map(|action| {
-//                                 parse_corporate_action(action, account_id)
-//                     })
-//                     .collect::<Vec<_>>();
-//                 transactions.append(&mut actions);
-//             }        }
-//     }
-//     transactions.iter().for_each(|t| println!("{t}"));
-//     if let Some(path) = opt.journal_file {
-//         let file_name: PathBuf = PathBuf::from(&path);
-//         tracing::error!("{:?}", &file_name);
-//         let mut f = std::fs::File::create(file_name)?;
-
-//         for t in transactions.iter() {
-//             write!(&mut f, "{t}\n");
-//         }
-//     }
-
-//     Ok(())
-// }
